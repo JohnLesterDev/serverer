@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Explorer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+		.success {
+			color: green;
+		}
+		
+		.error {
+			color: red;
+		}
+
+
+        h1 {
+            color: #333;
+        }
+
+        form {
+            margin-bottom: 15px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+
+        .checkbox-label {
+            margin-left: 5px;
+        }
+
+        .error-message {
+            color: red;
+        }
+
+        #passcodeLabel,
+        #passcodeInput,
+        #deleteButton {
+            display: none;
+        }
+
+        #fileUploadForm,
+        #createFolderForm {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>File Explorer</h1>
+    <p>Current Path: {{ current_path }}</p>
+	
+	<!-- Display Flash Messages -->
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class="flash-messages">
+      {% for message in messages %}
+        <li class="{% if 'error' in message %}error{% elif 'success' in message %}success{% endif %}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+    
+    <!-- File Upload Form -->
+    <form action="/upload" method="post" enctype="multipart/form-data" id="fileUploadForm">
+        <input type="file" name="file">
+        <input type="hidden" name="current_path" value="{{ current_path }}">
+        <input type="submit" value="Add File">
+    </form>
+
+    <!-- Create Folder Form -->
+    <form action="/create_folder" method="post" id="createFolderForm">
+        <input type="text" name="folder_name" placeholder="Enter folder name">
+        <input type="hidden" name="current_path" value="{{ current_path }}">
+        <input type="submit" value="Create Folder">
+    </form>
+
+    <!-- Delete Form -->
+    <form action="/delete" method="post" id="deleteForm">
+        <label for="passcode" id="passcodeLabel" style="display: none;">Enter Passcode: </label>
+        <input type="password" name="passcode" id="passcodeInput" style="display: none;">
+        <ul>
+            {% for item in items %}
+                <li>
+                    <input type="checkbox" name="selected_items" value="{{ item }}" class="itemCheckbox" id="{{ item }}">
+                    <label class="checkbox-label" for="{{ item }}">
+                        <a href="{{ url_for('enter_folder', folder_name=item, current_path=current_path) }}">{{ item }}</a>
+                    </label>
+                </li>
+            {% endfor %}
+        </ul>
+        <input type="hidden" name="current_path" value="{{ current_path }}">
+        <input type="submit" value="Delete Selected" id="deleteButton" style="display: none;">
+    </form>
+
+    <!-- Error Message -->
+    {% if error_message %}
+        <p class="error-message">Error: {{ error_message }}</p>
+    {% endif %}
+
+    <!-- Go Up Button -->
+    <form action="/go_up" method="post">
+        <input type="hidden" name="current_path" value="{{ current_path }}">
+        <input type="submit" value="Go Up">
+    </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var deleteForm = document.getElementById('deleteForm');
+            var passcodeLabel = document.getElementById('passcodeLabel');
+            var passcodeInput = document.getElementById('passcodeInput');
+            var deleteButton = document.getElementById('deleteButton');
+            var itemCheckboxes = document.getElementsByClassName('itemCheckbox');
+            var fileUploadForm = document.getElementById('fileUploadForm');
+            var createFolderForm = document.getElementById('createFolderForm');
+
+            // Add event listener to checkboxes
+            for (var i = 0; i < itemCheckboxes.length; i++) {
+                itemCheckboxes[i].addEventListener('change', toggleDeleteFormVisibility);
+            }
+
+            // Add click event listener to labels to toggle corresponding checkboxes
+            var labelElements = document.querySelectorAll('.checkbox-label a');
+            labelElements.forEach(function(label) {
+                label.addEventListener('click', function(event) {
+                    var checkboxId = event.target.getAttribute('for');
+                    var correspondingCheckbox = document.getElementById(checkboxId);
+                    correspondingCheckbox.checked = !correspondingCheckbox.checked;
+                    toggleDeleteFormVisibility();
+                });
+            });
+
+            // Function to toggle visibility of the delete form
+            function toggleDeleteFormVisibility() {
+                var anyCheckboxChecked = Array.from(itemCheckboxes).some(function(checkbox) {
+                    return checkbox.checked;
+                });
+
+                // Show or hide the delete form components based on checkbox state
+                passcodeLabel.style.display = anyCheckboxChecked ? 'block' : 'none';
+                passcodeInput.style.display = anyCheckboxChecked ? 'block' : 'none';
+                deleteButton.style.display = anyCheckboxChecked ? 'block' : 'none';
+
+                // Hide file upload and create folder forms if checkboxes are selected
+                fileUploadForm.style.display = anyCheckboxChecked ? 'none' : 'block';
+                createFolderForm.style.display = anyCheckboxChecked ? 'none' : 'block';
+            }
+        });
+    </script>
+</body>
+</html>
